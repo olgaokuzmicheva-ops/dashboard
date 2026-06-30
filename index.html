@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Мой дашборд</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#26262a;
+    --bg-deep:#1d1d20;
+    --surface:#2b2b30;
+    --shadow-dark:#191919;
+    --shadow-light:#33333a;
+    --accent:#e0875a;
+    --accent-2:#c8703f;
+    --accent-soft:rgba(224,135,90,.16);
+    --text:#f3efec;
+    --muted:#8c8a90;
+    --muted-2:#6b696f;
+    --radius:26px;
+    --grad:linear-gradient(145deg,#e8a074,#c8703f);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg-deep);
+    color:var(--text);
+    display:flex;justify-content:center;
+    min-height:100vh;
+  }
+  .phone{
+    width:100%;max-width:430px;background:var(--bg);
+    min-height:100vh;position:relative;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  .scroll{flex:1;overflow-y:auto;padding:26px 22px 120px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .screen{display:none;animation:fade .35s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* neumorphic surfaces */
+  .raised{
+    background:var(--surface);
+    border-radius:var(--radius);
+    box-shadow:7px 7px 16px var(--shadow-dark),-7px -7px 16px var(--shadow-light);
+  }
+  .inset{
+    background:var(--surface);
+    border-radius:var(--radius);
+    box-shadow:inset 5px 5px 11px var(--shadow-dark),inset -5px -5px 11px var(--shadow-light);
+  }
+
+  /* header */
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+  .top .hi{font-size:13px;color:var(--muted)}
+  .top h1{font-size:23px;font-weight:600;letter-spacing:.3px}
+  .top .accent{color:var(--accent)}
+  .avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--accent);font-size:15px}
+
+  .section-title{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted-2);margin:26px 4px 14px}
+
+  .card{padding:20px;margin-bottom:18px}
+  .card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .card-h .label{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+  .card-h .ic{color:var(--accent)}
+
+  /* rings */
+  .ring-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center}
+  .ring-wrap .val{position:absolute;text-align:center}
+  .ring-wrap .val .big{font-size:20px;font-weight:600}
+  .ring-wrap .val .sub{font-size:10px;color:var(--muted);letter-spacing:1px}
+
+  .row{display:flex;align-items:center;gap:16px}
+  .grow{flex:1}
+  .muted{color:var(--muted)}
+  .big-num{font-size:30px;font-weight:600}
+  .accent{color:var(--accent)}
+
+  /* home state mini */
+  .state-mini{display:flex;gap:10px;align-items:flex-end;height:46px;margin-top:6px}
+  .state-mini span{flex:1;background:var(--grad);border-radius:6px;opacity:.85}
+
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:16px;font-size:12px;color:var(--muted)}
+  .streak{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+  .streak:last-child{border-bottom:none}
+  .streak .n{color:var(--accent);font-weight:600;font-size:14px}
+
+  .cta{
+    width:100%;border:none;cursor:pointer;color:#fff;font-family:inherit;
+    background:var(--grad);border-radius:22px;padding:18px;font-size:15px;font-weight:600;
+    letter-spacing:.3px;box-shadow:5px 8px 22px rgba(200,112,63,.35);margin-top:8px;
+    transition:transform .12s;
+  }
+  .cta:active{transform:scale(.97)}
+
+  /* goals */
+  .goal{padding:18px;margin-bottom:16px;cursor:pointer;transition:transform .12s}
+  .goal:active{transform:scale(.98)}
+  .goal .name{font-weight:500;font-size:15px}
+  .goal .sums{font-size:12px;color:var(--muted);margin-top:3px}
+  .goal .fore{font-size:11px;margin-top:9px}
+  .ok{color:#7fbf8f}.late{color:#d98b6b}
+  .bar{height:8px;border-radius:6px;background:var(--bg-deep);margin-top:12px;overflow:hidden;box-shadow:inset 2px 2px 4px #141416}
+  .bar i{display:block;height:100%;border-radius:6px;background:var(--grad)}
+
+  /* habits */
+  .habit{display:flex;align-items:center;gap:15px;padding:15px 16px;margin-bottom:13px;cursor:pointer;transition:transform .1s}
+  .habit:active{transform:scale(.98)}
+  .check{width:30px;height:30px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 3px 3px 6px var(--shadow-dark),inset -3px -3px 6px var(--shadow-light);color:transparent;transition:.2s}
+  .habit.done .check{background:var(--grad);box-shadow:3px 3px 8px rgba(200,112,63,.4);color:#fff}
+  .habit .hname{flex:1;font-size:15px}
+  .habit.done .hname{color:var(--muted)}
+  .habit .hstreak{font-size:12px;color:var(--accent)}
+  .week{display:flex;justify-content:space-between;margin-top:6px}
+  .week .d{text-align:center;font-size:11px;color:var(--muted-2)}
+  .week .dot{width:26px;height:26px;border-radius:9px;margin-top:8px;display:flex;align-items:center;justify-content:center;font-size:11px;
+    box-shadow:inset 2px 2px 5px var(--shadow-dark),inset -2px -2px 5px var(--shadow-light)}
+  .week .dot.f{background:var(--grad);color:#fff;box-shadow:2px 2px 6px rgba(200,112,63,.35)}
+
+  /* sliders */
+  .slider-row{margin-bottom:22px}
+  .slider-row .lab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px}
+  .slider-row .lab b{color:var(--accent);font-weight:600}
+  input[type=range]{-webkit-appearance:none;width:100%;height:10px;border-radius:8px;
+    background:var(--bg-deep);box-shadow:inset 2px 2px 5px #141416,inset -2px -2px 5px #34343a;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+    background:var(--grad);cursor:pointer;box-shadow:2px 2px 8px rgba(200,112,63,.5),-2px -2px 6px #34343a}
+  input[type=range]::-moz-range-thumb{width:26px;height:26px;border:none;border-radius:50%;background:#d4794e;cursor:pointer}
+
+  .trend{display:flex;align-items:flex-end;gap:9px;height:90px;margin-top:6px}
+  .trend .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+  .trend .col i{width:100%;border-radius:7px 7px 4px 4px;background:var(--grad);opacity:.85}
+  .trend .col span{font-size:10px;color:var(--muted-2)}
+  .insight{display:flex;gap:12px;padding:14px 16px;margin-top:14px;font-size:13px;line-height:1.5;color:var(--muted)}
+  .insight .ic{color:var(--accent);flex-shrink:0;margin-top:2px}
+  .insight b{color:var(--text);font-weight:500}
+
+  /* bottom nav */
+  .nav{
+    position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+    width:calc(100% - 36px);max-width:394px;
+    display:flex;justify-content:space-around;padding:11px;border-radius:26px;
+    background:var(--surface);
+    box-shadow:6px 6px 16px var(--shadow-dark),-6px -6px 16px var(--shadow-light);
+  }
+  .nav button{
+    border:none;background:none;cursor:pointer;color:var(--muted-2);
+    width:54px;height:54px;border-radius:18px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:3px;font-family:inherit;font-size:9px;transition:.2s;
+  }
+  .nav button.active{color:#fff;background:var(--grad);box-shadow:4px 4px 12px rgba(200,112,63,.4)}
+  .nav button svg{width:21px;height:21px}
+  .tap{cursor:pointer}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="scroll">
+
+    <!-- ===== ДОМ ===== -->
+    <section class="screen active" id="home">
+      <div class="top">
+        <div>
+          <div class="hi">Вторник, 30 июня</div>
+          <h1>Привет, <span class="accent">Ольга</span></h1>
+        </div>
+        <div class="avatar raised">О</div>
+      </div>
+
+      <div class="card raised">
+        <div class="card-h">
+          <span class="label">Состояние сегодня</span>
+          <span class="ic">⚡</span>
+        </div>
+        <div class="row">
+          <div>
+            <div class="big-num">Энергия <span class="accent">4</span><span class="muted" style="font-size:16px">/5</span></div>
+            <div class="muted" style="font-size:13px;margin-top:2px">Настроение хорошее</div>
+          </div>
+        </div>
+        <div class="state-mini">
+          <span style="height:55%"></span><span style="height:40%"></span><span style="height:70%"></span>
+          <span style="height:60%"></span><span style="height:85%"></span><span style="height:50%"></span><span style="height:80%"></span>
+        </div>
+      </div>
+
+      <div class="card raised">
+        <div class="card-h">
+          <span class="label">Привычки</span>
+          <span class="ic">✦</span>
+        </div>
+        <div class="row">
+          <div class="ring-wrap" id="homeHabitRing"></div>
+          <div class="grow">
+            <div class="streak"><span>🔥 Медитация</span><span class="n">12 дн</span></div>
+            <div class="streak"><span>💧 Вода</span><span class="n">8 дн</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card raised">
+        <div class="card-h">
+          <span class="label">Накопления</span>
+          <span class="ic">◎</span>
+        </div>
+        <div class="row">
+          <div class="ring-wrap" id="homeFinRing"></div>
+          <div class="grow">
+            <div class="muted" style="font-size:12px">Ближайшая цель</div>
+            <div style="font-weight:500;margin-top:2px">Отпуск</div>
+            <div class="ok" style="font-size:11px;margin-top:6px">✓ успеваю к сентябрю</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="cta" onclick="go('res')">Отметить день</button>
+    </section>
+
+    <!-- ===== ФИНАНСЫ ===== -->
+    <section class="screen" id="fin">
+      <div class="top">
+        <div>
+          <div class="hi">Накопления и цели</div>
+          <h1>Финансы</h1>
+        </div>
+        <div class="avatar raised">₽</div>
+      </div>
+
+      <div class="card raised" style="text-align:center;padding:26px">
+        <div class="muted" style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase">Всего отложено</div>
+        <div class="big-num accent" style="font-size:38px;margin-top:8px">412 000 ₽</div>
+        <div class="muted" style="font-size:12px;margin-top:6px">по 3 целям · +18 500 ₽ в этом месяце</div>
+      </div>
+
+      <div class="section-title">Мои цели</div>
+
+      <div class="goal raised" onclick="this.querySelector('.det').style.display=this.querySelector('.det').style.display==='block'?'none':'block'">
+        <div class="row">
+          <div class="ring-wrap" data-ring="62" data-size="58"></div>
+          <div class="grow">
+            <div class="name">Отпуск</div>
+            <div class="sums">186 000 / 300 000 ₽</div>
+            <div class="fore ok">✓ темп 22 т/мес · к сентябрю</div>
+          </div>
+        </div>
+        <div class="det" style="display:none;margin-top:16px">
+          <div class="bar"><i style="width:62%"></i></div>
+          <div class="muted" style="font-size:12px;margin-top:10px">Осталось 114 000 ₽ · прогноз: 5 пополнений</div>
+        </div>
+      </div>
+
+      <div class="goal raised" onclick="this.querySelector('.det').style.display=this.querySelector('.det').style.display==='block'?'none':'block'">
+        <div class="row">
+          <div class="ring-wrap" data-ring="40" data-size="58"></div>
+          <div class="grow">
+            <div class="name">Подушка безопасности</div>
+            <div class="sums">2 из 3 месяцев расходов</div>
+            <div class="fore ok">✓ почти готова</div>
+          </div>
+        </div>
+        <div class="det" style="display:none;margin-top:16px">
+          <div class="bar"><i style="width:67%"></i></div>
+          <div class="muted" style="font-size:12px;margin-top:10px">Цель — 3 месяца привычных расходов</div>
+        </div>
+      </div>
+
+      <div class="goal raised" onclick="this.querySelector('.det').style.display=this.querySelector('.det').style.display==='block'?'none':'block'">
+        <div class="row">
+          <div class="ring-wrap" data-ring="28" data-size="58"></div>
+          <div class="grow">
+            <div class="name">Новый ноутбук</div>
+            <div class="sums">42 000 / 150 000 ₽</div>
+            <div class="fore late">⚠ темп низкий · отстаю на месяц</div>
+          </div>
+        </div>
+        <div class="det" style="display:none;margin-top:16px">
+          <div class="bar"><i style="width:28%"></i></div>
+          <div class="muted" style="font-size:12px;margin-top:10px">Чтобы успеть к сроку — +12 000 ₽/мес</div>
+        </div>
+      </div>
+
+      <button class="cta">＋ Добавить пополнение</button>
+    </section>
+
+    <!-- ===== ПРИВЫЧКИ ===== -->
+    <section class="screen" id="hab">
+      <div class="top">
+        <div>
+          <div class="hi">Сегодня, 30 июня</div>
+          <h1>Привычки</h1>
+        </div>
+        <div class="avatar raised" id="habCount">3/5</div>
+      </div>
+
+      <div class="card raised">
+        <div class="card-h"><span class="label">Эта неделя</span><span class="ic">📅</span></div>
+        <div class="week">
+          <div class="d">Пн<div class="dot f">✓</div></div>
+          <div class="d">Вт<div class="dot f">✓</div></div>
+          <div class="d">Ср<div class="dot f">✓</div></div>
+          <div class="d">Чт<div class="dot f">✓</div></div>
+          <div class="d">Пт<div class="dot f">✓</div></div>
+          <div class="d">Сб<div class="dot">·</div></div>
+          <div class="d">Вс<div class="dot">·</div></div>
+        </div>
+      </div>
+
+      <div class="section-title">На сегодня</div>
+
+      <div class="habit raised done"><div class="check">✓</div><div class="hname">🧘 Медитация</div><div class="hstreak">🔥 12</div></div>
+      <div class="habit raised done"><div class="check">✓</div><div class="hname">💧 Вода · 8 стаканов</div><div class="hstreak">🔥 8</div></div>
+      <div class="habit raised done"><div class="check">✓</div><div class="hname">📖 Чтение · 30 мин</div><div class="hstreak">🔥 5</div></div>
+      <div class="habit raised"><div class="check">✓</div><div class="hname">🏃 Спорт</div><div class="hstreak">🔥 3</div></div>
+      <div class="habit raised"><div class="check">✓</div><div class="hname">🌙 Лечь до 23:00</div><div class="hstreak">🔥 2</div></div>
+    </section>
+
+    <!-- ===== РЕСУРСЫ ===== -->
+    <section class="screen" id="res">
+      <div class="top">
+        <div>
+          <div class="hi">Чек-ин дня</div>
+          <h1>Ресурсы</h1>
+        </div>
+        <div class="avatar raised">⚡</div>
+      </div>
+
+      <div class="card raised">
+        <div class="card-h"><span class="label">Как ты сегодня?</span><span class="ic">✎</span></div>
+
+        <div class="slider-row">
+          <div class="lab"><span>Энергия</span><b id="v-energy">4</b></div>
+          <input type="range" min="1" max="5" value="4" oninput="document.getElementById('v-energy').textContent=this.value">
+        </div>
+        <div class="slider-row">
+          <div class="lab"><span>Настроение</span><b id="v-mood">4</b></div>
+          <input type="range" min="1" max="5" value="4" oninput="document.getElementById('v-mood').textContent=this.value">
+        </div>
+        <div class="slider-row">
+          <div class="lab"><span>Стресс</span><b id="v-stress">2</b></div>
+          <input type="range" min="1" max="5" value="2" oninput="document.getElementById('v-stress').textContent=this.value">
+        </div>
+        <div class="slider-row" style="margin-bottom:6px">
+          <div class="lab"><span>Сон</span><b id="v-sleep">7 ч</b></div>
+          <input type="range" min="4" max="10" value="7" oninput="document.getElementById('v-sleep').textContent=this.value+' ч'">
+        </div>
+      </div>
+
+      <div class="card raised">
+        <div class="card-h"><span class="label">Энергия за неделю</span><span class="ic">↗</span></div>
+        <div class="trend">
+          <div class="col"><i style="height:50px"></i><span>Пн</span></div>
+          <div class="col"><i style="height:35px"></i><span>Вт</span></div>
+          <div class="col"><i style="height:62px"></i><span>Ср</span></div>
+          <div class="col"><i style="height:55px"></i><span>Чт</span></div>
+          <div class="col"><i style="height:78px"></i><span>Пт</span></div>
+          <div class="col"><i style="height:45px"></i><span>Сб</span></div>
+          <div class="col"><i style="height:70px"></i><span>Вс</span></div>
+        </div>
+      </div>
+
+      <div class="insight inset">
+        <span class="ic">◈</span>
+        <div>В дни тренировок энергия в среднем <b>выше на 1,3 балла</b>. Сон от 7 часов держит настроение стабильным.</div>
+      </div>
+
+      <button class="cta">Сохранить чек-ин</button>
+    </section>
+
+  </div>
+
+  <!-- bottom nav -->
+  <nav class="nav">
+    <button class="active" data-t="home" onclick="go('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Дом</button>
+    <button data-t="fin" onclick="go('fin')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v12H3zM3 11h18M7 15h4"/></svg>Финансы</button>
+    <button data-t="hab" onclick="go('hab')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8M3 12a9 9 0 1 0 18 0"/></svg>Привычки</button>
+    <button data-t="res" onclick="go('res')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>Ресурсы</button>
+  </nav>
+</div>
+
+<script>
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.t===id));
+  document.querySelector('.scroll').scrollTop=0;
+}
+
+// progress ring builder
+function ring(percent,size,stroke){
+  const r=(size-stroke)/2, c=2*Math.PI*r, off=c*(1-percent/100);
+  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#1d1d20" stroke-width="${stroke}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="url(#g)" stroke-width="${stroke}"
+      stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+  </svg>`;
+}
+const defs=`<svg width="0" height="0"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#e8a074"/><stop offset="1" stop-color="#c8703f"/></linearGradient></defs></svg>`;
+document.body.insertAdjacentHTML('beforeend',defs);
+
+// home rings
+document.getElementById('homeHabitRing').innerHTML=
+  ring(60,92,9)+`<div class="val"><div class="big">3/5</div><div class="sub">сегодня</div></div>`;
+document.getElementById('homeFinRing').innerHTML=
+  ring(46,92,9)+`<div class="val"><div class="big">46%</div><div class="sub">к целям</div></div>`;
+
+// goal rings
+document.querySelectorAll('[data-ring]').forEach(el=>{
+  const p=+el.dataset.ring, s=+el.dataset.size;
+  el.innerHTML=ring(p,s,7)+`<div class="val"><div class="big" style="font-size:14px">${p}%</div></div>`;
+});
+
+// habit toggle
+document.querySelectorAll('.habit').forEach(h=>{
+  h.addEventListener('click',()=>{
+    h.classList.toggle('done');
+    const done=document.querySelectorAll('.habit.done').length;
+    const total=document.querySelectorAll('.habit').length;
+    document.getElementById('habCount').textContent=done+'/'+total;
+  });
+});
+</script>
+</body>
+</html>
