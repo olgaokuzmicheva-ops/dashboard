@@ -7,6 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Мой дашборд</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -412,10 +413,37 @@ const defs=`<svg width="0" height="0"><defs><linearGradient id="g" x1="0" y1="0"
   <stop offset="0" stop-color="#e8a074"/><stop offset="1" stop-color="#c8703f"/></linearGradient></defs></svg>`;
 document.body.insertAdjacentHTML('beforeend',defs);
 
-// === LIVE DATA: тянем data.json и рисуем всё динамически ===
+// === LIVE DATA + SAVE: данные в Telegram CloudStorage / localStorage / data.json ===
 const fmt = n => (n || 0).toLocaleString('ru-RU');
+const TG = window.Telegram?.WebApp;
+let state = null;
 
-fetch('data.json?t='+Date.now()).then(r => r.json()).then(d => {
+function loadState() {
+  return new Promise(async resolve => {
+    // 1. Telegram CloudStorage (между устройствами)
+    if (TG?.CloudStorage?.getItem) {
+      const cloud = await new Promise(r => TG.CloudStorage.getItem('dashboard', (err, val) => r(val || null)));
+      if (cloud) { try { return resolve(JSON.parse(cloud)); } catch {} }
+    }
+    // 2. localStorage (этот девайс)
+    const local = localStorage.getItem('dashboard_state');
+    if (local) { try { return resolve(JSON.parse(local)); } catch {} }
+    // 3. Дефолт с сервера
+    try {
+      const r = await fetch('data.json?t=' + Date.now());
+      resolve(await r.json());
+    } catch { resolve({}); }
+  });
+}
+
+function saveState() {
+  if (!state) return;
+  const json = JSON.stringify(state);
+  try { localStorage.setItem('dashboard_state', json); } catch {}
+  if (TG?.CloudStorage?.setItem) TG.CloudStorage.setItem('dashboard', json, () => {});
+}
+
+function render(d) {
   // Имя и дата
   document.querySelectorAll('.hi').forEach(el => {
     if (el.textContent.match(/\d+\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/)) {
@@ -559,18 +587,93 @@ fetch('data.json?t='+Date.now()).then(r => r.json()).then(d => {
   // Insight
   const insight = document.querySelector('#res .insight div');
   if (insight && d.insight) insight.textContent = d.insight;
+}
 
-}).catch(err => console.error('data.json не загрузился:', err));
+// Старт: загрузить состояние и нарисовать
+(async () => {
+  try { TG?.ready?.(); TG?.expand?.(); } catch {}
+  state = await loadState();
+  render(state);
+  attachInteractions();
+})();
 
-// habit toggle (локально — пометить done и пересчитать счётчик)
-document.querySelectorAll('.habit').forEach(h => {
-  h.addEventListener('click', () => {
-    h.classList.toggle('done');
-    const done = document.querySelectorAll('.habit.done').length;
-    const total = document.querySelectorAll('.habit').length;
-    document.getElementById('habCount').textContent = done + '/' + total;
+// ===== ИНТЕРАКТИВНОСТЬ =====
+function attachInteractions() {
+  // Привычки: тап → toggle done → save → перерисовать счётчики
+  document.querySelectorAll('#hab .habit').forEach((node, i) => {
+    node.addEventListener('click', () => {
+      if (!state.habits || !state.habits[i]) return;
+      const h = state.habits[i];
+      h.done = !h.done;
+      // streak логика: если отметили done и вчера тоже было done — streak++; если сняли — streak-- (минимум 0)
+      // Простая логика: при включении +1, при выключении -1
+      h.streak = Math.max(0, h.streak + (h.done ? 1 : -1));
+      node.classList.toggle('done', h.done);
+      node.querySelector('.hstreak').textContent = '🔥 ' + h.streak;
+      const done = state.habits.filter(x => x.done).length;
+      const total = state.habits.length;
+      document.getElementById('habCount').textContent = done + '/' + total;
+      // обновить кольцо на главной тоже
+      const pct = Math.round(done / total * 100);
+      document.getElementById('homeHabitRing').innerHTML =
+        ring(pct, 92, 9) + '<div class="val"><div class="big">' + done + '/' + total + '</div><div class="sub">сегодня</div></div>';
+      saveState();
+      if (TG?.HapticFeedback?.impactOccurred) TG.HapticFeedback.impactOccurred('light');
+    });
   });
-});
+
+  // Чек-ин слайдеры: сохраняем при изменении
+  ['v-energy', 'v-mood', 'v-stress', 'v-sleep'].forEach(id => {
+    const el = document.getElementById(id);
+    const input = el?.closest('.slider-row')?.querySelector('input');
+    if (!input || !state.checkin) return;
+    input.addEventListener('input', () => {
+      const key = id.replace('v-', '');
+      state.checkin[key] = parseInt(input.value, 10);
+      // На home — обновить энергию мгновенно если меняли energy
+      if (key === 'energy') {
+        state.energy = state.checkin.energy;
+        const energyBlock = document.querySelector('#home .big-num');
+        if (energyBlock) energyBlock.innerHTML = 'Энергия <span class="accent">' + state.energy + '</span><span class="muted" style="font-size:16px">/5</span>';
+      }
+      saveState();
+    });
+  });
+
+  // Кнопка «Сохранить чек-ин» в Ресурсах — даёт фидбек
+  const saveBtn = document.querySelector('#res .cta');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    saveState();
+    if (TG?.showAlert) TG.showAlert('Чек-ин сохранён ✓'); else alert('Чек-ин сохранён ✓');
+    if (TG?.HapticFeedback?.notificationOccurred) TG.HapticFeedback.notificationOccurred('success');
+  });
+
+  // Кнопка «+ Добавить пополнение» — prompt суммы → к ближайшей цели
+  const addFinBtn = document.querySelector('#fin .cta');
+  if (addFinBtn) addFinBtn.addEventListener('click', () => {
+    if (!state.goals || !state.goals.length) return;
+    // Выбрать ближайшую цель (с самым большим прогрессом)
+    let goalIdx = 0, bestPct = -1;
+    state.goals.forEach((g, i) => {
+      const p = g.current / g.target;
+      if (p > bestPct) { bestPct = p; goalIdx = i; }
+    });
+    const goal = state.goals[goalIdx];
+    const amountStr = prompt('Сколько добавить в "' + goal.name + '"?\nТекущий баланс: ' + fmt(goal.current) + ' / ' + fmt(goal.target) + ' ' + (goal.currency || '₽'));
+    if (!amountStr) return;
+    const amount = parseInt(amountStr.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(amount) || amount <= 0) return;
+    goal.current = (goal.current || 0) + amount;
+    state.total_saved = (state.total_saved || 0) + amount;
+    state.saved_this_month = (state.saved_this_month || 0) + amount;
+    saveState();
+    render(state); // полный перерисовать
+    if (TG?.showAlert) TG.showAlert('Добавил ' + fmt(amount) + ' к цели «' + goal.name + '» ✓');
+    if (TG?.HapticFeedback?.notificationOccurred) TG.HapticFeedback.notificationOccurred('success');
+  });
+
+  // Кнопка «Отметить день» на главной — переход на Ресурсы (уже есть в HTML через onclick="go('res')")
+}
 </script>
 </body>
 </html>
