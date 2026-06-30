@@ -1,0 +1,26 @@
+{
+  "updated_at": "2026-06-30",
+  "today_human": "Вторник, 30 июня",
+  "name": "Ольга",
+  "energy": 0,
+  "mood_today_text": "Жду первых отметок",
+  "energy_sparkline": [0,0,0,0,0,0,0],
+  "habits": [
+    {"emoji":"🧘","name":"Медитация","streak":0,"done":false},
+    {"emoji":"💧","name":"Вода · 8 стаканов","streak":0,"done":false},
+    {"emoji":"📖","name":"Чтение · 30 мин","streak":0,"done":false},
+    {"emoji":"🏃","name":"Спорт","streak":0,"done":false},
+    {"emoji":"🌙","name":"Лечь до 23:00","streak":0,"done":false}
+  ],
+  "habits_week": ["·","·","·","·","·","·","·"],
+  "goals": [
+    {"name":"Отпуск","current":0,"target":300000,"currency":"₽","comment":"новая цель","status":"ok"},
+    {"name":"Подушка безопасности","current":0,"target":3,"unit":"мес расходов","comment":"стартуем","status":"ok"},
+    {"name":"Новый ноутбук","current":0,"target":150000,"currency":"₽","comment":"новая цель","status":"ok"}
+  ],
+  "total_saved": 0,
+  "saved_this_month": 0,
+  "checkin": {"energy":0,"mood":0,"stress":0,"sleep":0},
+  "energy_week": [0,0,0,0,0,0,0],
+  "insight": "Жду первых данных. Отмечай привычки, добавляй накопления, делай чек-ин — здесь появятся выводы."
+}

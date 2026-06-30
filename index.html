@@ -409,25 +409,163 @@ const defs=`<svg width="0" height="0"><defs><linearGradient id="g" x1="0" y1="0"
   <stop offset="0" stop-color="#e8a074"/><stop offset="1" stop-color="#c8703f"/></linearGradient></defs></svg>`;
 document.body.insertAdjacentHTML('beforeend',defs);
 
-// home rings
-document.getElementById('homeHabitRing').innerHTML=
-  ring(60,92,9)+`<div class="val"><div class="big">3/5</div><div class="sub">сегодня</div></div>`;
-document.getElementById('homeFinRing').innerHTML=
-  ring(46,92,9)+`<div class="val"><div class="big">46%</div><div class="sub">к целям</div></div>`;
+// === LIVE DATA: тянем data.json и рисуем всё динамически ===
+const fmt = n => (n || 0).toLocaleString('ru-RU');
 
-// goal rings
-document.querySelectorAll('[data-ring]').forEach(el=>{
-  const p=+el.dataset.ring, s=+el.dataset.size;
-  el.innerHTML=ring(p,s,7)+`<div class="val"><div class="big" style="font-size:14px">${p}%</div></div>`;
-});
+fetch('data.json?t='+Date.now()).then(r => r.json()).then(d => {
+  // Имя и дата
+  document.querySelectorAll('.hi').forEach(el => {
+    if (el.textContent.match(/\d+\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/)) {
+      el.textContent = d.today_human || el.textContent;
+    }
+  });
+  document.querySelectorAll('h1 .accent').forEach(el => { if (d.name) el.textContent = d.name; });
 
-// habit toggle
-document.querySelectorAll('.habit').forEach(h=>{
-  h.addEventListener('click',()=>{
+  // ===== ДОМ =====
+  // Энергия (1-5)
+  const energyBlock = document.querySelector('#home .big-num');
+  if (energyBlock) energyBlock.innerHTML = 'Энергия <span class="accent">' + (d.energy || 0) + '</span><span class="muted" style="font-size:16px">/5</span>';
+  const moodLine = document.querySelector('#home .card:nth-of-type(1) .muted[style*="13px"]');
+  if (moodLine && d.mood_today_text) moodLine.textContent = d.mood_today_text;
+
+  // Energy sparkline (7 баров)
+  const spark = document.querySelector('#home .state-mini');
+  if (spark && d.energy_sparkline) {
+    spark.innerHTML = '';
+    const max = Math.max(1, ...d.energy_sparkline);
+    d.energy_sparkline.forEach(v => {
+      const s = document.createElement('span');
+      s.style.height = Math.round(v / max * 85 + 15) + '%';
+      spark.appendChild(s);
+    });
+  }
+
+  // Топ-2 привычки на главной (по streak)
+  const homeHabits = document.querySelectorAll('#home .streak');
+  if (d.habits) {
+    const top = d.habits.slice().sort((a,b) => b.streak - a.streak).slice(0, 2);
+    homeHabits.forEach((row, i) => {
+      if (top[i]) {
+        row.innerHTML = '<span>' + top[i].emoji + ' ' + top[i].name.split(' ·')[0] + '</span><span class="n">' + top[i].streak + ' дн</span>';
+      }
+    });
+  }
+
+  // home rings
+  const habitsDone = (d.habits || []).filter(h => h.done).length;
+  const habitsTotal = (d.habits || []).length;
+  const habitsPct = habitsTotal ? Math.round(habitsDone / habitsTotal * 100) : 0;
+  document.getElementById('homeHabitRing').innerHTML =
+    ring(habitsPct, 92, 9) + '<div class="val"><div class="big">' + habitsDone + '/' + habitsTotal + '</div><div class="sub">сегодня</div></div>';
+
+  const goalsAvg = (d.goals || []).length
+    ? Math.round((d.goals || []).reduce((a, g) => a + Math.min(100, Math.round(g.current / g.target * 100)), 0) / d.goals.length)
+    : 0;
+  document.getElementById('homeFinRing').innerHTML =
+    ring(goalsAvg, 92, 9) + '<div class="val"><div class="big">' + goalsAvg + '%</div><div class="sub">к целям</div></div>';
+
+  // Ближайшая цель в "Накопления" на главной
+  const closestGoal = (d.goals || []).slice().sort((a, b) => (b.current / b.target) - (a.current / a.target))[0];
+  if (closestGoal) {
+    const finName = document.querySelector('#home .card:nth-of-type(3) .row .grow div[style*="font-weight:500"]');
+    if (finName) finName.textContent = closestGoal.name;
+    const finStatus = document.querySelector('#home .card:nth-of-type(3) .row .grow .ok');
+    if (finStatus && closestGoal.comment) finStatus.textContent = '✓ ' + closestGoal.comment;
+  }
+
+  // ===== ФИНАНСЫ =====
+  const totalSavedEl = document.querySelector('#fin .big-num.accent');
+  if (totalSavedEl) totalSavedEl.textContent = fmt(d.total_saved) + ' ₽';
+  const totalSavedSub = document.querySelector('#fin .card:nth-of-type(1) .muted[style*="margin-top:6px"]');
+  if (totalSavedSub) totalSavedSub.textContent = 'по ' + (d.goals || []).length + ' целям · +' + fmt(d.saved_this_month) + ' ₽ в этом месяце';
+
+  // Цели (3 блока)
+  const goalNodes = document.querySelectorAll('#fin .goal');
+  (d.goals || []).forEach((g, i) => {
+    const node = goalNodes[i];
+    if (!node) return;
+    const pct = Math.min(100, Math.round(g.current / g.target * 100));
+    node.querySelector('.name').textContent = g.name;
+    node.querySelector('.sums').textContent = g.unit
+      ? g.current + ' из ' + g.target + ' ' + g.unit
+      : fmt(g.current) + ' / ' + fmt(g.target) + ' ' + (g.currency || '₽');
+    const fore = node.querySelector('.fore');
+    fore.textContent = (g.status === 'late' ? '⚠ ' : '✓ ') + (g.comment || '');
+    fore.className = 'fore ' + (g.status === 'late' ? 'late' : 'ok');
+    const ringEl = node.querySelector('[data-ring]');
+    if (ringEl) {
+      ringEl.dataset.ring = pct;
+      ringEl.innerHTML = ring(pct, 58, 7) + '<div class="val"><div class="big" style="font-size:14px">' + pct + '%</div></div>';
+    }
+    const bar = node.querySelector('.bar i');
+    if (bar) bar.style.width = pct + '%';
+  });
+
+  // ===== ПРИВЫЧКИ =====
+  const habCount = document.getElementById('habCount');
+  if (habCount) habCount.textContent = habitsDone + '/' + habitsTotal;
+  // Неделя — точки
+  const weekDots = document.querySelectorAll('#hab .week .d .dot');
+  (d.habits_week || []).forEach((status, i) => {
+    if (weekDots[i]) {
+      if (status === '✓') {
+        weekDots[i].textContent = '✓';
+        weekDots[i].classList.add('f');
+      } else {
+        weekDots[i].textContent = '·';
+        weekDots[i].classList.remove('f');
+      }
+    }
+  });
+
+  // 5 карточек привычек
+  const habitCards = document.querySelectorAll('#hab .habit');
+  (d.habits || []).forEach((h, i) => {
+    const node = habitCards[i];
+    if (!node) return;
+    node.querySelector('.hname').textContent = h.emoji + ' ' + h.name;
+    node.querySelector('.hstreak').textContent = '🔥 ' + h.streak;
+    node.classList.toggle('done', !!h.done);
+  });
+
+  // ===== ЧЕК-ИН =====
+  if (d.checkin) {
+    const c = d.checkin;
+    const setSlider = (id, val) => {
+      const el = document.getElementById(id);
+      const input = el?.closest('.slider-row')?.querySelector('input');
+      if (el) el.textContent = id === 'v-sleep' ? (val + ' ч') : val;
+      if (input) input.value = val;
+    };
+    setSlider('v-energy', c.energy || 0);
+    setSlider('v-mood', c.mood || 0);
+    setSlider('v-stress', c.stress || 0);
+    setSlider('v-sleep', c.sleep || 0);
+  }
+
+  // Энергия за неделю — 7 баров
+  const trendCols = document.querySelectorAll('#res .trend .col');
+  if (d.energy_week) {
+    const max = Math.max(1, ...d.energy_week);
+    d.energy_week.forEach((v, i) => {
+      const col = trendCols[i];
+      if (col) col.querySelector('i').style.height = Math.round(v / max * 78 + 5) + 'px';
+    });
+  }
+
+  // Insight
+  const insight = document.querySelector('#res .insight div');
+  if (insight && d.insight) insight.textContent = d.insight;
+
+}).catch(err => console.error('data.json не загрузился:', err));
+
+// habit toggle (локально — пометить done и пересчитать счётчик)
+document.querySelectorAll('.habit').forEach(h => {
+  h.addEventListener('click', () => {
     h.classList.toggle('done');
-    const done=document.querySelectorAll('.habit.done').length;
-    const total=document.querySelectorAll('.habit').length;
-    document.getElementById('habCount').textContent=done+'/'+total;
+    const done = document.querySelectorAll('.habit.done').length;
+    const total = document.querySelectorAll('.habit').length;
+    document.getElementById('habCount').textContent = done + '/' + total;
   });
 });
 </script>
